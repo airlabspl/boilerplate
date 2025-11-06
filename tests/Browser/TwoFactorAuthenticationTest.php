@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\User;
-use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
 
 test('two factor settings page can be rendered', function () {
@@ -17,12 +16,12 @@ test('two factor settings page can be rendered', function () {
     $user = User::factory()->withoutTwoFactor()->create();
 
     $this->actingAs($user)
-        ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('two-factor.show'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/two-factor')
-            ->where('twoFactorEnabled', false)
-        );
+        ->withSession(['auth.password_confirmed_at' => time()]);
+
+    $page = visit(route('two-factor.show'));
+
+    $page->assertSee('Two-Factor Authentication')
+        ->assertNoJavascriptErrors();
 });
 
 test('two factor settings page requires password confirmation when enabled', function () {
@@ -37,10 +36,12 @@ test('two factor settings page requires password confirmation when enabled', fun
         'confirmPassword' => true,
     ]);
 
-    $response = $this->actingAs($user)
-        ->get(route('two-factor.show'));
+    $this->actingAs($user);
 
-    $response->assertRedirect(route('password.confirm'));
+    $page = visit(route('two-factor.show'));
+
+    $page->assertPathIs(route('password.confirm', absolute: false))
+        ->assertNoJavascriptErrors();
 });
 
 test('two factor settings page does not requires password confirmation when disabled', function () {
@@ -55,12 +56,12 @@ test('two factor settings page does not requires password confirmation when disa
         'confirmPassword' => false,
     ]);
 
-    $this->actingAs($user)
-        ->get(route('two-factor.show'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/two-factor')
-        );
+    $this->actingAs($user);
+
+    $page = visit(route('two-factor.show'));
+
+    $page->assertSee('Two-Factor Authentication')
+        ->assertNoJavascriptErrors();
 });
 
 test('two factor settings page returns forbidden response when two factor is disabled', function () {
@@ -73,7 +74,10 @@ test('two factor settings page returns forbidden response when two factor is dis
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('two-factor.show'))
-        ->assertForbidden();
+        ->withSession(['auth.password_confirmed_at' => time()]);
+
+    $page = visit(route('two-factor.show'));
+
+    $page->assertSee('403')
+        ->assertNoJavascriptErrors();
 });

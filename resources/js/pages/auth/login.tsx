@@ -10,6 +10,7 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
+import { toast } from 'sonner';
 
 interface LoginProps {
     status?: string;
@@ -32,6 +33,11 @@ export default function Login({
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
+                onError={(errors) => {
+                    if (errors.message) {
+                        toast.error(errors.message);
+                    }
+                }}
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (

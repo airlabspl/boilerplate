@@ -11,9 +11,13 @@ test('sends verification notification', function () {
         'email_verified_at' => null,
     ]);
 
-    $this->actingAs($user)
-        ->post(route('verification.send'))
-        ->assertRedirect(route('home'));
+    $this->actingAs($user);
+
+    $page = visit(route('verification.notice'));
+
+    $page->click('Resend verification email')
+        ->assertPathIs(route('verification.notice', absolute: false))
+        ->assertNoJavascriptErrors();
 
     Notification::assertSentTo($user, VerifyEmail::class);
 });
@@ -25,9 +29,12 @@ test('does not send verification notification if email is verified', function ()
         'email_verified_at' => now(),
     ]);
 
-    $this->actingAs($user)
-        ->post(route('verification.send'))
-        ->assertRedirect(route('dashboard', absolute: false));
+    $this->actingAs($user);
+
+    $page = visit(route('verification.notice'));
+
+    $page->assertPathIs(route('dashboard', absolute: false))
+        ->assertNoJavascriptErrors();
 
     Notification::assertNothingSent();
 });

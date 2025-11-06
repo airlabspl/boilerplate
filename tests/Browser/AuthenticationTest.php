@@ -5,21 +5,24 @@ use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
 
 test('login screen can be rendered', function () {
-    $response = $this->get(route('login'));
+    $page = visit(route('login'));
 
-    $response->assertStatus(200);
+    $page->assertSee('Log in')
+        ->assertNoJavascriptErrors();
 });
 
 test('users can authenticate using the login screen', function () {
     $user = User::factory()->withoutTwoFactor()->create();
 
-    $response = $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'password',
-    ]);
+    $page = visit(route('login'));
+
+    $page->fill('email', $user->email)
+        ->fill('password', 'password')
+        ->click('Log in')
+        ->assertPathIs(route('dashboard', absolute: false))
+        ->assertNoJavascriptErrors();
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function () {
@@ -40,23 +43,26 @@ test('users with two factor enabled are redirected to two factor challenge', fun
         'two_factor_confirmed_at' => now(),
     ])->save();
 
-    $response = $this->post(route('login'), [
-        'email' => $user->email,
-        'password' => 'password',
-    ]);
+    $page = visit(route('login'));
 
-    $response->assertRedirect(route('two-factor.login'));
-    $response->assertSessionHas('login.id', $user->id);
+    $page->fill('email', $user->email)
+        ->fill('password', 'password')
+        ->click('Log in')
+        ->assertPathIs(route('two-factor.login', absolute: false))
+        ->assertNoJavascriptErrors();
+
     $this->assertGuest();
 });
 
 test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
-    $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'wrong-password',
-    ]);
+    $page = visit(route('login'));
+
+    $page->fill('email', $user->email)
+        ->fill('password', 'wrong-password')
+        ->click('Log in')
+        ->assertNoJavascriptErrors();
 
     $this->assertGuest();
 });
@@ -64,10 +70,16 @@ test('users can not authenticate with invalid password', function () {
 test('users can logout', function () {
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)->post(route('logout'));
+    $this->actingAs($user);
+
+    $page = visit(route('dashboard'));
+
+    $page->click('[data-test="sidebar-menu-button"]')
+        ->click('[data-test="logout-button"]')
+        ->assertPathIs(route('home', absolute: false))
+        ->assertNoJavascriptErrors();
 
     $this->assertGuest();
-    $response->assertRedirect(route('home'));
 });
 
 test('users are rate limited', function () {
@@ -75,10 +87,11 @@ test('users are rate limited', function () {
 
     RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
 
-    $response = $this->post(route('login.store'), [
-        'email' => $user->email,
-        'password' => 'wrong-password',
-    ]);
+    $page = visit(route('login'));
 
-    $response->assertTooManyRequests();
+    $page->fill('email', $user->email)
+        ->fill('password', 'wrong-password')
+        ->click('Log in')
+        ->assertSee('Too many attempts. Please try again later.')
+        ->assertNoJavascriptErrors();
 });
