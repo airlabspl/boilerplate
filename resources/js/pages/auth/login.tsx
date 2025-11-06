@@ -1,47 +1,89 @@
+import { useState, useEffect } from 'react';
 import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSeparator,
+    InputOTPSlot,
+} from '@/components/ui/input-otp';
 import AuthLayout from '@/layouts/auth-layout';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
-import { Form, Head } from '@inertiajs/react';
+import SendOtpController from '@/actions/App/Http/Controllers/Auth/SendOtpController';
+import VerifyOtpController from '@/actions/App/Http/Controllers/Auth/VerifyOtpController';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 
 interface LoginProps {
-    status?: string;
-    canResetPassword: boolean;
-    canRegister: boolean;
+    otpSent?: boolean;
+    email?: string;
 }
 
-export default function Login({
-    status,
-    canResetPassword,
-    canRegister,
-}: LoginProps) {
+export default function Login({ otpSent: initialOtpSent, email: initialEmail }: LoginProps) {
+    const [otpSent, setOtpSent] = useState(initialOtpSent || false);
+    const [email, setEmail] = useState(initialEmail || '');
+    const [otp, setOtp] = useState('');
+    const [timeLeft, setTimeLeft] = useState(300);
+
+    const { props } = usePage<{ otpSent?: boolean; email?: string }>();
+
+    useEffect(() => {
+        if (props.otpSent) {
+            setOtpSent(true);
+            setEmail(props.email || '');
+            setTimeLeft(300);
+        }
+    }, [props.otpSent, props.email]);
+
+    useEffect(() => {
+        if (!otpSent || timeLeft <= 0) {
+            return;
+        }
+
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [otpSent, timeLeft]);
+
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
     return (
         <AuthLayout
-            title="Log in to your account"
-            description="Enter your email and password below to log in"
+            title={otpSent ? 'Enter verification code' : 'Log in to your account'}
+            description={
+                otpSent
+                    ? 'Enter the code sent to your email'
+                    : 'Enter your email to receive a login code'
+            }
         >
             <Head title="Log in" />
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                onError={(errors) => {
-                    if (errors.message) {
-                        toast.error(errors.message);
-                    }
-                }}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
+            {!otpSent ? (
+                <Form
+                    {...SendOtpController.form()}
+                    onSuccess={() => {
+                        setOtpSent(true);
+                        setTimeLeft(300);
+                    }}
+                    onError={(errors) => {
+                        if (errors.message) {
+                            toast.error(errors.message);
+                        }
+                    }}
+                    className="flex flex-col gap-6"
+                >
+                    {({ processing, errors, data }) => (
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email address</Label>
@@ -51,75 +93,110 @@ export default function Login({
                                     name="email"
                                     required
                                     autoFocus
-                                    tabIndex={1}
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     autoComplete="email"
                                     placeholder="email@example.com"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
-
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
-
                             <Button
                                 type="submit"
                                 className="mt-4 w-full"
-                                tabIndex={4}
                                 disabled={processing}
-                                data-test="login-button"
+                                data-test="send-code-button"
                             >
                                 {processing && <Spinner />}
-                                Log in
+                                Send code
                             </Button>
                         </div>
+                    )}
+                </Form>
+            ) : (
+                <Form
+                    {...VerifyOtpController.form()}
+                    transform={(data) => ({ ...data, email, otp })}
+                    onSuccess={() => {
+                        window.location.href = '/dashboard';
+                    }}
+                    onError={(errors) => {
+                        if (errors.otp) {
+                            toast.error(errors.otp);
+                        }
+                        if (errors.message) {
+                            toast.error(errors.message);
+                        }
+                    }}
+                    className="flex flex-col gap-6"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <div className="grid gap-6">
+                                <input type="hidden" name="email" value={email} />
+                                <div className="grid gap-2">
+                                    <Label htmlFor="otp">Verification code</Label>
+                                    <InputOTP
+                                        maxLength={6}
+                                        value={otp}
+                                        onChange={setOtp}
+                                        name="otp"
+                                    >
+                                        <InputOTPGroup>
+                                            <InputOTPSlot index={0} />
+                                            <InputOTPSlot index={1} />
+                                            <InputOTPSlot index={2} />
+                                        </InputOTPGroup>
+                                        <InputOTPSeparator />
+                                        <InputOTPGroup>
+                                            <InputOTPSlot index={3} />
+                                            <InputOTPSlot index={4} />
+                                            <InputOTPSlot index={5} />
+                                        </InputOTPGroup>
+                                    </InputOTP>
+                                    <input type="hidden" name="otp" value={otp} />
+                                    <InputError message={errors.otp} />
+                                </div>
 
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                Don't have an account?{' '}
-                                <TextLink href={register()} tabIndex={5}>
-                                    Sign up
-                                </TextLink>
+                                {timeLeft > 0 && (
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        Code expires in {timeString}
+                                    </p>
+                                )}
+
+                                {timeLeft === 0 && (
+                                    <p className="text-center text-sm text-red-600 dark:text-red-400">
+                                        Code expired. Please request a new one.
+                                    </p>
+                                )}
+
+                                <Button
+                                    type="submit"
+                                    className="mt-4 w-full"
+                                    disabled={processing || timeLeft === 0}
+                                    data-test="verify-code-button"
+                                >
+                                    {processing && <Spinner />}
+                                    Verify code
+                                </Button>
                             </div>
-                        )}
-                    </>
-                )}
-            </Form>
 
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
+                            <div className="text-center text-sm text-muted-foreground">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setOtpSent(false);
+                                        setOtp('');
+                                        setTimeLeft(300);
+                                    }}
+                                    className="text-primary hover:underline"
+                                >
+                                    Use a different email
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </Form>
             )}
         </AuthLayout>
     );

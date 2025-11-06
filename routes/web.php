@@ -1,14 +1,16 @@
 <?php
 
+use App\Http\Controllers\Auth\SendOtpController;
+use App\Http\Controllers\Auth\VerifyOtpController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
 Route::get('/', function () {
-    return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
+    return Inertia::render('welcome');
 })->name('home');
+
+Route::post('login/otp', SendOtpController::class)->name('login.otp');
+Route::post('login/verify', VerifyOtpController::class)->name('login.verify');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
