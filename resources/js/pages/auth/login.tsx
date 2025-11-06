@@ -84,7 +84,7 @@ export default function Login({ otpSent: initialOtpSent, email: initialEmail }: 
                     className="flex flex-col gap-6"
                 >
                     {({ processing, errors, data }) => (
-                        <div className="grid gap-6">
+                        <div className="grid gap-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email address</Label>
                                 <Input
@@ -132,7 +132,7 @@ export default function Login({ otpSent: initialOtpSent, email: initialEmail }: 
                 >
                     {({ processing, errors }) => (
                         <>
-                            <div className="grid gap-6">
+                            <div className="grid gap-2">
                                 <input type="hidden" name="email" value={email} />
                                 <div className="grid gap-2">
                                     <Label htmlFor="otp">Verification code</Label>
@@ -155,17 +155,16 @@ export default function Login({ otpSent: initialOtpSent, email: initialEmail }: 
                                         </InputOTPGroup>
                                     </InputOTP>
                                     <input type="hidden" name="otp" value={otp} />
-                                    <InputError message={errors.otp} />
                                 </div>
 
                                 {timeLeft > 0 && (
-                                    <p className="text-center text-sm text-muted-foreground">
+                                    <p className="text-left text-sm text-muted-foreground">
                                         Code expires in {timeString}
                                     </p>
                                 )}
 
                                 {timeLeft === 0 && (
-                                    <p className="text-center text-sm text-red-600 dark:text-red-400">
+                                    <p className="text-left text-sm text-red-600 dark:text-red-400">
                                         Code expired. Please request a new one.
                                     </p>
                                 )}
