@@ -21,7 +21,7 @@ func NewTestCase(t *testing.T) *TestCase {
 }
 
 func (tc *TestCase) Close() {
-
+	tc.Server.Close()
 }
 
 func (tc *TestCase) Visit(path string) BrowserPage {
