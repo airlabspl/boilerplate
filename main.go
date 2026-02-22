@@ -1,7 +1,18 @@
 package main
 
-import "fmt"
+import (
+	"app/handler"
+	"log"
+	"net/http"
+)
 
 func main() {
-	fmt.Println("Hello, world!")
+	h := handler.New()
+
+	s := http.Server{
+		Handler: h,
+		Addr:    ":4000",
+	}
+
+	log.Fatal(s.ListenAndServe())
 }
