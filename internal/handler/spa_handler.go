@@ -25,6 +25,8 @@ func SpaHandler() http.HandlerFunc {
 			return
 		}
 
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+
 		if stat, err := f.Stat(); err != nil && stat.IsDir() {
 			path = "/index.html"
 		}

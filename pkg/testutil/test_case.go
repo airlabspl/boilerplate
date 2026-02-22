@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"app/internal/router"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -59,5 +60,22 @@ func (tc *TestCase) Visit(path string) BrowserPage {
 	return BrowserPage{
 		T:    tc.T,
 		Page: page,
+	}
+}
+
+func (tc *TestCase) Get(path string) HtmlPage {
+	req, err := http.NewRequest(http.MethodGet, tc.Server.URL+path, nil)
+	if err != nil {
+		tc.T.Fatal(err)
+	}
+
+	res, err := tc.Server.Client().Do(req)
+	if err != nil {
+		tc.T.Fatal(err)
+	}
+
+	return HtmlPage{
+		T:        tc.T,
+		Response: res,
 	}
 }
