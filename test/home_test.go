@@ -1,7 +1,7 @@
 package test
 
 import (
-	"app/testutil"
+	"app/pkg/testutil"
 	"testing"
 )
 
