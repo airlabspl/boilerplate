@@ -16,6 +16,7 @@ build: ui
 
 .PHONY: test
 test: build
+	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true \
 	go test ./...
 
 .PHONY: ui

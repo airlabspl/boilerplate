@@ -2,6 +2,8 @@ package testutil
 
 import (
 	"app/internal/router"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,12 +19,18 @@ type TestCase struct {
 }
 
 func NewTestCase(t *testing.T) *TestCase {
+	slog.SetLogLoggerLevel(slog.LevelError)
 	err := playwright.Install()
 	if err != nil {
 		t.Fatalf("could not install playwright: %v", err)
 	}
 
-	pw, err := playwright.Run()
+	pw, err := playwright.Run(&playwright.RunOptions{
+		Logger:  nil,
+		Verbose: false,
+		Stdout:  io.Discard,
+		Stderr:  io.Discard,
+	})
 	if err != nil {
 		t.Fatalf("could not start playwright: %v", err)
 	}
@@ -63,7 +71,7 @@ func (tc *TestCase) Visit(path string) BrowserPage {
 	}
 }
 
-func (tc *TestCase) Get(path string) HtmlPage {
+func (tc *TestCase) Get(path string) *HtmlPage {
 	req, err := http.NewRequest(http.MethodGet, tc.Server.URL+path, nil)
 	if err != nil {
 		tc.T.Fatal(err)
@@ -74,7 +82,7 @@ func (tc *TestCase) Get(path string) HtmlPage {
 		tc.T.Fatal(err)
 	}
 
-	return HtmlPage{
+	return &HtmlPage{
 		T:        tc.T,
 		Response: res,
 	}
