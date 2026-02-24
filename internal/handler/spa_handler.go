@@ -7,35 +7,38 @@ import (
 )
 
 func SpaHandler() http.HandlerFunc {
-	fs, _ := fs.Sub(web.FS, "dist")
-	root := http.FS(fs)
+	sub, _ := fs.Sub(web.FS, "dist")
+	root := http.FS(sub)
 	fileServer := http.FileServer(root)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
-		if path == "" {
-			path = "/index.html"
+		if path == "" || path == "/" {
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			http.ServeFileFS(w, r, sub, "index.html")
+			return
 		}
 
 		f, err := root.Open(path)
 		if err != nil {
-			r.URL.Path = "/"
-			fileServer.ServeHTTP(w, r)
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			http.ServeFileFS(w, r, sub, "index.html")
+			return
+		}
+		defer f.Close()
+
+		stat, err := f.Stat()
+		if err == nil && stat.IsDir() {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			http.ServeFileFS(w, r, sub, "index.html")
 			return
 		}
 
-		if stat, err := f.Stat(); err != nil && stat.IsDir() {
-			path = "/index.html"
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		}
-
-		if path == "/" || path == "/index.html" || path == "" {
+		if path == "/index.html" {
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		} else {
-			w.Header().Set("Cache-Control", "max-age=360015768000, public")
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		}
 
 		fileServer.ServeHTTP(w, r)

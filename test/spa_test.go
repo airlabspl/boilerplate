@@ -37,6 +37,6 @@ func TestSpa(t *testing.T) {
 
 		tc.Get("/assets/"+jsFile).
 			AssertStatusCode(http.StatusOK).
-			AssertHeaderValue("Cache-Control", "max-age=360015768000, public")
+			AssertHeaderValue("Cache-Control", "public, max-age=31536000, immutable")
 	})
 }
