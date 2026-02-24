@@ -2,7 +2,7 @@ package test
 
 import (
 	"app/pkg/testutil"
-	"app/web"
+	"app/ui"
 	"io/fs"
 	"net/http"
 	"testing"
@@ -24,13 +24,13 @@ func TestSpa(t *testing.T) {
 		tc := testutil.NewTestCase(t)
 		defer tc.Close()
 
-		assetsFS, err := fs.Sub(web.FS, "dist/assets")
+		assetsFS, err := fs.Sub(ui.FS, "dist/assets")
 		files, err := fs.Glob(assetsFS, "*.js")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(files) == 0 {
-			t.Fatal("did not find any js files in dist/assets: build the web ui first")
+			t.Fatal("did not find any js files in dist/assets: build the ui first")
 		}
 
 		jsFile := files[0]

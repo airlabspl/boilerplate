@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"app/web"
+	"app/ui"
 	"io/fs"
 	"net/http"
 )
 
 func SpaHandler() http.HandlerFunc {
-	sub, _ := fs.Sub(web.FS, "dist")
+	sub, _ := fs.Sub(ui.FS, "dist")
 	root := http.FS(sub)
 	fileServer := http.FileServer(root)
 

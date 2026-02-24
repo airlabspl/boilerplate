@@ -4,7 +4,7 @@ watch:
 		-build.full_bin="./tmp/main" \
 		-build.cmd="make build" \
 		-build.include_ext="go,ts,tsx,sql,css" \
-		-build.exclude_dir="web/node_modules" \
+		-build.exclude_dir="ui/node_modules" \
 		-build.send_interrupt=true \
 		-proxy.enabled=true \
 		-proxy.proxy_port=3000 \
@@ -21,7 +21,7 @@ test: build
 
 .PHONY: ui
 ui:
-	npm run build --prefix ./web
+	npm run build --prefix ./ui
 
 .PHONY: clean
 clean:
